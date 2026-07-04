@@ -1,4 +1,4 @@
-#+title: Course Status
+#+title: mrsync
 #+author: Steven J Holtz
 
 #+options: num:nil toc:nil
