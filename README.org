@@ -1,0 +1,102 @@
+#+title: Course Status
+#+author: Steven J Holtz
+
+#+options: num:nil toc:nil
+
+#+html_head: <style>table tr:nth-child(even){background-color:#f2f2f2;}table,th,td{border:1px solid black;}th,td{padding: 5px;}</style>
+
+* 📁 Repository: ~mrsync~
+
+> A robust, intelligent Bash utility to automate secure and reliable
+  deployment of web assets using ~rsync~.
+
+** ✅ Overview
+
+This script is designed for environments where regular file
+synchronization between local and remote systems (e.g., educational
+platforms) must be done reliably and with minimal manual intervention.
+
+It wraps the power of ~rsync~ while adding:
+- Pre-flight network checks
+- Dynamic path mapping based on ~public_html~
+- Flexible filtering by day (Mon–Fri)
+- Exclusion handling via flags and persistent files
+- CLI flag support for customization
+
+** 🔧 Features
+
+| Feature                 | Description                                                                                          |
+|-------------------------|------------------------------------------------------------------------------------------------------|
+| *Automated Deployment*  | Replaces manual ~rsync~ commands with an intelligent CLI tool.                                       |
+| *Path Resolution Logic* | Detects relative paths under ~public_html~, automatically adjusting sync targets.                    |
+| *Day Filtering*         | Select specific days of the week (~-m~, ~-t~, etc.) to deploy only those files.                      |
+| *Network Validation*    | Checks network connectivity before initiating transfers.                                             |
+| *Flexible Exclusions*   | Supports both static exclusions from ~exclude.txt~ and dynamic overrides via CLI flags (~-T~, ~-M~). |
+| *Safe Execution*        | Includes exit codes and fail-safes to prevent accidental data loss or misconfigurations.             |
+
+** 🛠️ Usage Example
+#+BEGIN_SRC bash
+  # Sync all PHP files ending with "...Mon.php" in current working
+  # directory (CWD) to the server "prod"
+  ./mrsync -H prod -m *.php
+
+  # Sync all files, including the Makefile (if there is one), from CWD
+  # to the  default server
+  ./mrsync -T -M *
+
+  # Transfer all files except for the Makefile from CWD to the default
+  # server
+  ./mrsync *
+#+END_SRC
+
+** 📦 Prerequisites
+
+- Bash (v4+ recommended)
+- ~rsync~ installed
+- Access to remote hosts via SSH (with proper keys configured)
+
+** ⚙️ Command-Line Options
+
+| Flag                  | Description                                    |
+|-----------------------|------------------------------------------------|
+| ~-H host~             | Target host name (required)                    |
+| ~-m~, ~-t~, ..., ~-f~ | Day flags: select specific day for deployment  |
+| ~-T~                  | Filter out ~.txt~ files                        |
+| ~-M~                  | Include Makefiles in sync                      |
+| ~-a~                  | Do not transfer day-based PHP files            |
+
+** 📁 File Structure
+#+BEGIN_SRC
+.
+├── mrsync           # Main script
+├── exclude.txt      # Persistent exclusion list
+└── README.org       # This file
+#+END_SRC
+
+** 📦 Installation
+
+Clone the repo and make the script executable:
+#+BEGIN_SRC bash
+git clone https://github.com/sjholtz/mrsync.git
+cd mrsync
+chmod +x mrsync
+#+END_SRC
+
+** 💡 Use Cases
+
+- Syncing files from local dev to a server.
+- Deploying assets (HTML, CSS, JS, PHP) across multiple environments.
+
+** 🧠 Why This Tool?
+
+This script bridges the gap between raw ~rsync~ usage and real-world
+deployment needs. It avoids common pitfalls such as:
+
+- Forgetting to exclude Makefiles and solution directories
+- Incorrectly destination path when transferring from a nested
+  directory in ~~/public_html/~ on the local file system to the same
+  nested directory in ~~/www/~ on the production file system
+- Manual typing errors during repetitive deployments
+
+By automating safety checks and flexible filtering, it ensures
+fast, consistent, error-free deployments.

@@ -1,0 +1,95 @@
+#!/usr/bin/env bash
+
+set -euo  pipefail
+
+# Check network connectivity
+if ! find /sys/class/net/ -maxdepth 1 -mindepth 1 ! -name 'lo' -execdir sh -c 'cat "{}"/carrier 2>&1' \; | grep -q '1'; then
+    echo "ERROR: Network is not up." >&2
+    exit 1
+fi
+
+# Set default values
+exMake=( "--exclude" "Makefile" )
+exText=()
+exDays=()
+
+host="linkwood"
+
+# Define usage function
+usage() {
+    cat <<EOF
+Usage: $(basename $0) [-MTamtwhf] [-H hostname] file(s)
+  -M = transfer Makefiles too.
+  -T = do not transfer *.txt files.
+  -H <hostname> = transfer using host <hostname>.
+  -a = do not transfer any lecture notes.
+  -m = transfer only lecture notes for Mon.
+  -t = transfer only lecture note for Tue.
+  -w = transfer only lecture notes for Wed.
+  -h = transfer only lecture notes for Thu.
+  -f = transfer only lecture notes for Fri.
+EOF
+    exit 1
+}
+
+# Parse options
+while getopts ":MTH:amtwhf:" opt; do
+    case "${opt}" in
+        M) exMake=() ;;
+        T) exText=( "--exclude" "'*.txt'" ) ;;
+        H) host="${OPTARG}"
+           [[ -e "${host}" ]] && usage ;;
+        a) exDays=( "--exclude" "*Mon.php" "--exclude" "*Tue.php" "--exclude" "*Wed.php" "--exclude" "*Thu.php" "--exclude" "*Fri.php" ) ;;
+        m) exDays=( "--exclude" "*Tue.php" "--exclude" "*Wed.php" "--exclude" "*Thu.php" "--exclude" "*Fri.php" ) ;;
+        t) exDays=( "--exclude" "*Mon.php" "--exclude" "*Wed.php" "--exclude" "*Thu.php" "--exclude" "*Fri.php" ) ;;
+        w) exDays=( "--exclude" "*Mon.php" "--exclude" "*Tue.php" "--exclude" "*Thu.php" "--exclude" "*Fri.php" ) ;;
+        h) exDays=( "--exclude" "*Mon.php" "--exclude" "*Tue.php" "--exclude" "*Wed.php" "--exclude" "*Fri.php" ) ;;
+        f) exDays=( "--exclude" "*Mon.php" "--exclude" "*Tue.php" "--exclude" "*Wed.php" "--exclude" "*Thu.php" ) ;;
+        \?) usage;;
+    esac
+done
+
+shift $(($OPTIND - 1))
+
+# Validate arguments
+if (( $# < 1 )); then
+    echo "ERROR: no arguments to transfer." >&2
+    usage
+fi
+
+# Check that we're in the directory hierarchy rooted at $PWD/public_html
+if [[ ${PWD} != ${HOME}/public_html* ]]; then
+    echo "ERROR: Must be executed in ~/public_html/ directory hierarchy." >&2
+    exit 1
+fi
+
+# Determine destination directory
+if [[ ${PWD} == ${HOME}/public_html/* ]]; then
+    toDir="${host}:~/www/${PWD#*public_html/}"
+else
+    toDir="${host}:~/www/"
+fi
+
+# Check for host availability
+if ! nc -z "${host}" 22 2>/dev/null; then
+    echo "ERROR: Host ${host} is not reachable." >&2
+    exit 1
+fi
+
+options=(
+    "-rkLpcoDv"
+    "-i"
+    "--partial"
+    "-e" "ssh"
+    "--stats"
+    "--progress"
+    "--exclude-from" "${HOME}/public_html/exclude.txt"
+)
+
+echo "Transferring ${*} to ${toDir} ..."
+echo
+
+rsync "${options[@]}" "${exMake[@]}" "${exText[@]}" "${exDays[@]}" "$@" "${toDir}"
+
+echo
+echo "Done."
